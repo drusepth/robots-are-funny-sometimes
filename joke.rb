@@ -282,6 +282,7 @@ end
 # 3. Find another noun a low L-distance away from one             # related_word:      "poultergeist"
 Log.debug("Finding a related word from dictionary.")
 related_word_raw_string = dictionary.words
+  .reject { |word| word.length < 7 }
   .sort_by do |word|
     word.chomp!
 
@@ -318,10 +319,10 @@ Log.debug("From: #{related_verbs}")
 
 # 6. Choose a random joke template
 joke_templates = [
-  [
-    "Q. What do you call a <related_adjective> <core_word> <related_verb> you?",
-    "A. A <pun>!"
-  ].join("\n"),
+  # [
+  #   "Q. What do you call a <related_adjective> <core_word> <related_verb> you?",
+  #   "A. A <pun>!"
+  # ].join("\n"),
   [
     "Q. What do you call a <related_adjective> <core_word>?",
     "A. A <pun>!"
@@ -334,7 +335,7 @@ Log.flow("Chose joke template: \n#{joke_template}")
 #  7a. Find the related_word subsequence most similar to our selected_synonym
 iteratable_chunk_size    = [selected_synonym.length, related_word.word.length].min
 most_similar_subsequence = related_word.word[0, iteratable_chunk_size]
-best_subsequence_score   = selected_synonym.length
+best_subsequence_score   = selected_synonym.length + 1
 
 related_word.word.chars.each_cons(iteratable_chunk_size) do |character_sequence|
   next if character_sequence.join == selected_synonym
@@ -344,6 +345,11 @@ related_word.word.chars.each_cons(iteratable_chunk_size) do |character_sequence|
     best_subsequence_score   = levenshtein_distance
     most_similar_subsequence = character_sequence.join
   end
+end
+
+if best_subsequence_score > related_word.word.length
+  Debug.error("No subsequence to replace. Failing gracefully.")
+  exit
 end
 
 Log.reasoning("Swapping '#{most_similar_subsequence}' in '#{related_word.word}' with #{selected_synonym} for the punchline.")
